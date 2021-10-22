@@ -34,13 +34,23 @@ const vows = require("vows");
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
-const url = require("url");
+const { URL } = require("url");
 const tough = require("../lib/cookie");
 const CookieJar = tough.CookieJar;
 
 function readJson(filePath) {
   filePath = path.join(__dirname, filePath);
   return JSON.parse(fs.readFileSync(filePath).toString());
+}
+
+function resolveUrl(from, to) {
+  const resolvedUrl = new URL(to, new URL(from, 'resolve://'));
+  if (resolvedUrl.protocol === 'resolve:') {
+    // `from` is a relative URL.
+    const { pathname, search, hash } = resolvedUrl;
+    return pathname + search + hash;
+  }
+  return resolvedUrl.toString();
 }
 
 function setGetCookieVows() {
@@ -53,7 +63,7 @@ function setGetCookieVows() {
       const expected = testCase["sent"];
       const sentFrom = `http://home.example.org/cookie-parser?${testCase.test}`;
       const sentTo = testCase["sent-to"]
-        ? url.resolve("http://home.example.org", testCase["sent-to"])
+        ? resolveUrl("http://home.example.org", testCase["sent-to"])
         : `http://home.example.org/cookie-parser-result?${testCase.test}`;
 
       testCase["received"].forEach(cookieStr => {
